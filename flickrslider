@@ -1,0 +1,14 @@
+#!/usr/bin/zsh
+
+TMPFILE=~/tmp/flickrslider.jpg
+
+while sleep 1; do
+  wget -O - 'https://www.flickr.com/search/?text='"$(echo "${1-#landscape}" | sed -e 's/#/%23/g;s/ /%20/g')"'&sort=date-posted-desc' | grep '{"search-photos-lite-models":' | sed -e 's/^.*modelExport: //' | sed -e 's/,$//' | \
+    jq -r '.["search-photos-lite-models"][0].photos._data | map(.sizes | to_entries | sort_by(-.value.width)) | map(.[0].value.displayUrl) | map("http:" + .) | join("'"\n"'")' | \
+    shuf | \
+  while read url; do
+    wget -O "$TMPFILE" "$url" && \
+    display -backdrop -window root "$TMPFILE"
+    sleep 60
+  done
+done
