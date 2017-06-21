@@ -1,0 +1,17 @@
+#!/bin/bash
+
+STRENGTH=normal
+[ "$1" != "" ] && STRENGTH="$1"
+[ "$STRENGTH" == "weak" ] && { export DEVICE=/dev/urandom; CHARSET='a-zA-Z0-9'; LENGTH=8; }
+[ "$STRENGTH" == "normal" ] && { export DEVICE=/dev/urandom; CHARSET='a-zA-Z0-9!"$%&/()=?`\\+*~#-_.:,;<>|^@'"'"; LENGTH=12; }
+[ "$STRENGTH" == "strong" ] && { export DEVICE=/dev/urandom; CHARSET='a-zA-Z0-9!"$%&/()=?`\\+*~#-_.:,;<>|^@'"'"; LENGTH=32; }
+[ "$STRENGTH" == "custom" ] && { export DEVICE=${4:-/dev/urandom}; CHARSET=${3:-'a-zA-Z0-9!"$%&/()=?`\\+*~#-_.:,;<>|^@'"'"}; LENGTH=${2:-16}; }
+[ "$STRENGTH" == "--help" ] && {
+	echo "Usage: genpw [<strength>]"
+	echo "       genpw custom <length> <charset> <device>"
+	echo
+	echo "       strength: weak, normal, strong"
+	exit 1
+}
+
+cat "$DEVICE" | tr -cd "$CHARSET" | head -c "$LENGTH" && echo
