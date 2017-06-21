@@ -1,0 +1,12 @@
+#!/bin/zsh
+
+# pads 4:3 images into 18:13
+
+h=$(convert "$1" -ping -format '%h' info:)
+w=$(convert "$1" -ping -format '%w' info:)
+
+if [ $(( $h > $w )) = 1 ]; then
+  convert "$1" -quality 98 -extent "100x103.846153%" "$2"
+else
+  convert "$1" -quality 98 -extent "103.846153x100%" "$2"
+fi
