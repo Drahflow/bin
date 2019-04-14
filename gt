@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-tmp="/home/drahflow/tmp/termdump"
+tmp="$HOME/tmp/termdump"
 
 echo -ne "\e[?47h\e[?11i\e[?47l\e[?11i" >/dev/tty
 if [ "$2" = "" ]; then
