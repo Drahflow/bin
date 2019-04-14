@@ -1,0 +1,12 @@
+#!/bin/zsh
+
+tmp="/home/drahflow/tmp/termdump"
+
+echo -ne "\e[?47h\e[?11i\e[?47l\e[?11i" >/dev/tty
+if [ "$2" = "" ]; then
+  sed -e 's/\[[-;0-9]\+m//g;s/\[0m//g;s/^#5//;s///g' < "$tmp" | grep -v '^$' |
+   se: -e '/^.\{'"$COLUMNS"'\}$/{N;s/\n//;b}' | tac | tail -n +2 | grep "$1" | head -n 1
+elif [ "$2" = "fzf" ]; then
+  sed -e 's/\[[-;0-9]\+m//g;s/\[0m//g;s/^#5//;s///g' < "$tmp" |
+   sed -e '/^.\{'"$COLUMNS"'\}$/{N;s/\n//;b}' | tr ' ' '\n' | grep -v '^$' | fzf --tac -m +s
+fi
