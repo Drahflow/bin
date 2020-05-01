@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -eu
+
+xrandr --delmonitor VIRTUAL-0
+xrandr --delmonitor DVI-D-0-FIXED
+xrandr --delmonitor HDMI-0-FIXED
+xrandr --delmonitor VIRTUAL-1
+
+xrandr --fb 5286x1248 \
+  --output DVI-D-0 --pos 1366x0 --panning $((1366+1280))x1024+0+0/1280x1024+1366+0 \
+  --output HDMI-0 --pos $((1366 + 1280))x0 --panning 1360x$((768 + 480))+$((1366 + 1280))+0/1360x768+$((1366+1280))+0 \
+  --output VGA-0 --pos $((1366 + 1280 + 1360))x0 --panning 1280x1024+$((1366 + 1280 + 1360))+0
+
+xrandr --setmonitor VIRTUAL-0 1366/376x768/211+0+0 none
+xrandr --setmonitor DVI-D-0-FIXED 1280/376x1024/301+1366+0 DVI-D-0
+xrandr --setmonitor HDMI-0-FIXED 1360/160x768/90+$((1366+1280))+0 HDMI-0
+xrandr --setmonitor VIRTUAL-1 800/100x480/50+$((1366+1280))+768 none
+
+uxterm -e "x11vnc -viewonly -localhost -clip 1366x768+0+0" &
+uxterm -e "x11vnc -passwd XXX -rfbport 5901 -viewonly -localhost -clip 800x480+$((1366 + 1280))+768" &
+uxterm -e "ssh -R 192.168.2.2:5900:localhost:5901 root@192.168.3.2" &
+
+sleep 2
+
+ssh -R 5900:localhost:5900 drahflow@192.168.3.109 'DISPLAY=:0 xset dpms 0 0 0'
+ssh -R 5900:localhost:5900 drahflow@192.168.3.109 'DISPLAY=:0 xset s 0 0'
+ssh -R 5900:localhost:5900 drahflow@192.168.3.109 'DISPLAY=:0 xset dpms force on'
+ssh -R 5900:localhost:5900 drahflow@192.168.3.109 'DISPLAY=:0 vncviewer FullScreen=1 ViewOnly=1 UseLocalCursor=0 localhost'
+
+killall x11vnc
