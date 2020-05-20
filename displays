@@ -36,7 +36,7 @@ uxterm -e "ssh -R 5900:localhost:5900 drahflow@192.168.3.109 'export DISPLAY=:0;
 sleep 2
 
 ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg floating enable'
-ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg shrink up 6px'
+ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg resize shrink up 6px'
 ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg resize set 1368 770'
 
 uxterm -e "ssh -R 5902:localhost:5902 drahflow@192.168.3.109 'export DISPLAY=:0; i3.install/bin/i3-msg workspace 2; i3.install/i3-msg move workspace to output HMDI1; vncviewer FullScreen=0 ViewOnly=1 UseLocalCursor=0 geometry=1280x1024+0+0 localhost:5902'" &
@@ -44,6 +44,6 @@ uxterm -e "ssh -R 5902:localhost:5902 drahflow@192.168.3.109 'export DISPLAY=:0;
 sleep 2
 
 ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg floating enable'
-ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg shrink up 6px'
-ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg resize set 1368 770'
+ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg resize shrink up 6px'
+ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg resize set 1282 1026'
 
