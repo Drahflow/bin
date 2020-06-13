@@ -1,0 +1,14 @@
+#!/bin/zsh
+
+FIFO=/home/drahflow/tmp/redo.fifo
+
+if [ "$*" = "redo" ]; then
+  if [ -p "$FIFO" ]; then
+    echo "redo" >> "$FIFO"
+  fi
+else
+  rm -fv "$FIFO"
+  mkfifo "$FIFO"
+
+  while read l < "$FIFO"; do "$@"; done
+fi
