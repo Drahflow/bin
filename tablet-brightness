@@ -1,0 +1,25 @@
+#!/bin/zsh
+
+for device in 30045b283451c100 3004575aaf74c100 3004924d2e1b7100; do (
+  if [ "$1" = "on" ]; then
+    echo 'echo '128' > /sys/class/backlight/panel/brightness; exit' | ssh root@192.168.3.109 adb -s $device shell su
+  else
+    echo 'echo '0' > /sys/class/backlight/panel/brightness; exit' | ssh root@192.168.3.109 adb -s $device shell su
+  fi
+) & done
+
+for device in DEA0017625 DEA0025691; do (
+  if [ "$1" = "on" ]; then
+    echo 'echo '1' > /sys/class/backlight/rk28_bl/brightness; exit' | ssh root@192.168.3.109 adb -s $device shell su
+  else
+    echo 'echo '0' > /sys/class/backlight/rk28_bl/brightness; exit' | ssh root@192.168.3.109 adb -s $device shell su
+  fi
+) & done
+
+for device in FA49RWJRZLT8FY7H 0123456789ABCDEF; do (
+  if [ "$1" = "on" ]; then
+    echo 'echo '24' > /sys/class/leds/lcd-backlight/brightness; exit' | ssh root@192.168.3.109 adb -s $device shell su
+  else
+    echo 'echo '0' > /sys/class/leds/lcd-backlight/brightness; exit' | ssh root@192.168.3.109 adb -s $device shell su
+  fi
+) & done
