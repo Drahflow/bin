@@ -1,49 +1,364 @@
-#!/bin/sh
+#!/bin/zsh
 
 set -eu
 
-xrandr --delmonitor VIRTUAL-0
-xrandr --delmonitor DVI-D-0-FIXED
-xrandr --delmonitor HDMI-0-FIXED
-xrandr --delmonitor VIRTUAL-1
-xrandr --delmonitor VIRTUAL-2
+action="${1:-on}"
+subcmd="${2:-}"
+pw="$(cat $HOME/.displays.pw)"
 
-xrandr --fb 5286x2048 \
-  --output DVI-D-0 --pos 1366x0 --panning $((1366+1280))x2048+0+0/1280x1024+1366+0 \
-  --output HDMI-0 --pos $((1366 + 1280))x0 --panning 1360x$((768 + 480))+$((1366 + 1280))+0/1360x768+$((1366+1280))+0 \
-  --output VGA-0 --pos $((1366 + 1280 + 1360))x0 --panning 1280x1024+$((1366 + 1280 + 1360))+0
+conf() {
+  cat <<CONF
+Laptop2:1366x768:COL1:none:none
+Laptop1:1366x768:COL1:none:none
+SamsungWhite:1024x600:COL1:none:pw
+SamsungBlack2:1024x600:COL1:none:pw
+SamsungBlack1:1024x600:COL1:none:pw
+ViewSonic:1280x1024:COL2:none:none
+Belinea:1280x1024:COL2:DVI-D-0:pw
+LifetabBlack2:1280x800:COL2:none:pw
+LifetabBlack1:1280x800:COL2:none:pw
+Samsung:1360x768:COL3:HDMI-0:pw
+Lenovo:1280x800:COL3:none:pw
+Nova:800x600:COL3:none:pw
+Medion:1280x1024:COL4:VGA-0:pw
+Phone:800x480:COL4:none:pw
+*:COL1:shift:1024:pw
+*:COL2:shift:0:pw
+*:COL3:shift:1024:pw
+*:COL4:shift:1300:pw
+CONF
+}
 
-xrandr --setmonitor VIRTUAL-0 1366/376x768/211+0+0 none
-xrandr --setmonitor DVI-D-0-FIXED 1280/376x1024/301+1366+0 DVI-D-0
-xrandr --setmonitor HDMI-0-FIXED 1360/160x768/90+$((1366+1280))+0 HDMI-0
-xrandr --setmonitor VIRTUAL-1 800/100x480/50+$((1366+1280))+768 none
-xrandr --setmonitor VIRTUAL-2 1280/376x1024/301+1366+1024 none
+parseName() {
+  cut -d: -f1
+}
 
-uxterm -e "while sleep 0.1; do x11vnc -forever -viewonly -localhost -clip 1366x768+0+0; done" &
-uxterm -e "while sleep 0.1; do x11vnc -forever -passwd XXX -rfbport 5901 -viewonly -localhost -clip 800x480+$((1366 + 1280))+768; done" &
-uxterm -e "while sleep 0.1; do x11vnc -forever -rfbport 5902 -viewonly -localhost -clip 1280x1024+1366+1024; done" &
-uxterm -e "ssh -R 192.168.2.2:5900:localhost:5901 root@192.168.3.2" &
+parseWidth() {
+  cut -d: -f2 | cut -dx -f1
+}
 
-sleep 10
+parseHeight() {
+  cut -d: -f2 | cut -dx -f2
+}
 
-ssh drahflow@192.168.3.109 'DISPLAY=:0 xset dpms 0 0 0'
-ssh drahflow@192.168.3.109 'DISPLAY=:0 xset s 0 0'
-ssh drahflow@192.168.3.109 'DISPLAY=:0 xset dpms force on'
-ssh drahflow@192.168.3.109 'DISPLAY=:0 killall i3lock'
-ssh drahflow@192.168.3.109 'DISPLAY=:0 xrandr --output HDMI1 --auto --right-of eDP1 --rotate inverted'
-uxterm -e "ssh -R 5900:localhost:5900 drahflow@192.168.3.109 'export DISPLAY=:0; i3.install/bin/i3-msg workspace 1; i3.install/i3-msg move workspace to output eDP1; vncviewer FullScreen=0 ViewOnly=1 UseLocalCursor=0 geometry=1366x768+0+0 localhost'" &
+parseSize() {
+  cut -d: -f2
+}
 
-sleep 2
+parseColumn() {
+  cut -d: -f3
+}
 
-ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg floating enable'
-ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg resize shrink up 6px'
-ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg resize set 1368 770'
+parseOutput() {
+  cut -d: -f4
+}
 
-uxterm -e "ssh -R 5902:localhost:5902 drahflow@192.168.3.109 'export DISPLAY=:0; i3.install/bin/i3-msg workspace 2; i3.install/i3-msg move workspace to output HMDI1; vncviewer FullScreen=0 ViewOnly=1 UseLocalCursor=0 geometry=1280x1024+0+0 localhost:5902'" &
+parsePassword() {
+  cut -d: -f5
+}
 
-sleep 2
+parseOutput() {
+  cut -d: -f4
+}
 
-ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg floating enable'
-ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg resize shrink up 6px'
-ssh drahflow@192.168.3.109 'DISPLAY=:0 i3.install/bin/i3-msg resize set 1282 1026'
+columnWidth() {
+  max=0
+  conf | grep "$1" | grep -v "^*" | parseWidth | while read w; do
+    if [ "$max" -lt "$w" ]; then
+      max="$w"
+    fi
+  done
 
+  echo "$max"
+}
+
+columnShift() {
+  conf | grep "^\*:${1}:shift" | cut -d: -f4
+}
+
+columnHeight() {
+  sum="$(columnShift "$1")"
+  conf | grep "$1" | grep -v "^*" | parseHeight | while read h; do
+    sum="$(($sum + $h))"
+  done
+
+  echo "$sum"
+}
+
+columnStart() {
+  sum=0
+  conf | grep -B999 "^*:${1}" | grep "^*" | grep -v "$1" | cut -d: -f2 | while read col; do
+    sum="$(($sum + $(columnWidth $col)))"
+  done
+
+  echo "$sum"
+}
+
+framebufferWidth() {
+  sum=0
+  conf | grep "^*:COL" | cut -d: -f2 | while read col; do
+    sum="$(($sum + $(columnWidth $col)))"
+  done
+
+  echo "$sum"
+}
+
+framebufferHeight() {
+  max=0
+  conf | grep "^*:COL" | cut -d: -f2 | while read col; do
+    if [ "$max" -lt "$(columnHeight $col)" ]; then
+      max="$(columnHeight $col)"
+    fi
+  done
+
+  echo "$max"
+}
+
+size() {
+  if [ "$1" = "framebuffer" ]; then
+    echo "$(framebufferWidth)x$(framebufferHeight)"
+  else
+    conf | grep "^$1:" | parseSize
+  fi
+}
+
+monsize() {
+  size "$1" | sed -e 's/\(.*\)x\(.*\)/\1\/100x\2\/100/'
+}
+
+column() {
+  conf | grep "^$1:" | parseColumn
+}
+
+output() {
+  conf | grep "^$1:" | parseOutput
+}
+
+password() {
+  conf | grep "^$1:" | parsePassword
+}
+
+pos() {
+  col="$(column "$1")"
+  x="$(columnStart "$col")"
+  y="$(columnShift "$col")"
+
+  conf | grep -B99 "$1" | grep ":$col" | grep -v "$1" | parseHeight | while read h; do
+    y="$(($y + $h))"
+  done
+
+  echo "${x}x$y"
+}
+
+panpos() {
+  pos "$1" | tr x +
+}
+
+port() {
+  echo "$((5899 + $(conf | grep -B99 "$1" | wc -l)))"
+}
+
+startx() {
+  uxterm -T displays -e "ssh $1 Xorg -nocursor" &
+}
+
+unlock() {
+  ssh "$1" 'DISPLAY=:0 xset dpms 0 0 0'
+  ssh "$1" 'DISPLAY=:0 xset s 0 0'
+  ssh "$1" 'DISPLAY=:0 xset dpms force on'
+  ssh "$1" 'DISPLAY=:0 xset b off'
+  ssh "$1" 'DISPLAY=:0 killall i3lock || true'
+}
+
+setupBelina() { }
+setupSamsung() { }
+setupMedion() { }
+
+setupLaptop1() {
+  uxterm -T displays -e "ssh -R $(port Laptop1):localhost:$(port Laptop1) drahflow@192.168.3.109 'export DISPLAY=:0; ~/i3.install/bin/i3-msg workspace 1; ~/i3.install/bin/i3-msg move workspace to output eDP1; vncviewer FullScreen=0 ViewOnly=1 UseLocalCursor=0 geometry=1366x768+0+0 localhost:$(port Laptop1)'" &
+
+  sleep 2
+
+  ssh drahflow@192.168.3.109 'DISPLAY=:0 ~/i3.install/bin/i3-msg floating enable'
+  ssh drahflow@192.168.3.109 'DISPLAY=:0 ~/i3.install/bin/i3-msg resize shrink up 10px'
+  ssh drahflow@192.168.3.109 'DISPLAY=:0 ~/i3.install/bin/i3-msg resize set 1368 770'
+  ssh drahflow@192.168.3.109 'DISPLAY=:0 xdotool mousemove 0 767'
+}
+
+setupViewSonic() {
+  sleep 10
+
+  uxterm -T displays -e "ssh -R $(port ViewSonic):localhost:$(port ViewSonic) drahflow@192.168.3.109 'export DISPLAY=:0; ~/i3.install/bin/i3-msg workspace 2; ~/i3.install/bin/i3-msg move workspace to output HMDI1; vncviewer FullScreen=0 ViewOnly=1 UseLocalCursor=0 geometry=1280x1024+0+0 localhost:$(port ViewSonic)'" &
+
+  sleep 2
+
+  ssh drahflow@192.168.3.109 'DISPLAY=:0 ~/i3.install/bin/i3-msg floating enable'
+  ssh drahflow@192.168.3.109 'DISPLAY=:0 ~/i3.install/bin/i3-msg resize shrink up 10px'
+  ssh drahflow@192.168.3.109 'DISPLAY=:0 ~/i3.install/bin/i3-msg resize set 1282 1026'
+  ssh drahflow@192.168.3.109 'DISPLAY=:0 xdotool mousemove 0 767'
+}
+
+setupLaptop2() {
+  uxterm -T displays -e "ssh -R $(port Laptop2):localhost:$(port Laptop2) root@192.168.3.8 'export DISPLAY=:0; vncviewer FullScreen=1 ViewOnly=1 UseLocalCursor=0 localhost::$(port Laptop2)'" &
+
+  unlock root@192.168.3.8 || true
+}
+
+android() {
+  port="$1"
+  device="$2"
+  debian="$3"
+  extraEscape="${4:-no}"
+  acc=root@192.168.3.109
+
+  # ssh $acc adb -s $device shell ps | grep Xorg || (
+  #   ssh root@192.168.3.109 adb -s 30045b283451c100 shell ps | grep zygote || (
+
+  if [ "$extraEscape" = "escape" ]; then
+    ssh "${acc}" adb -s "$device" shell /data/local/tmp/root.sh
+    sleep 10
+  fi
+
+  ssh "${acc}" adb -s "${device}" shell su -c reboot
+  sleep 40;
+
+  if [ "$action" != "off" -a "$subcmd" != "off" ]; then
+    if [ "$extraEscape" = "escape" ]; then
+      ssh "${acc}" adb -s "${device}" shell /data/local/tmp/root.sh
+      sleep 10
+    fi
+
+    ssh "${acc}" adb -s "${device}" shell su -c ${debian}/start.sh
+    sleep 5
+
+    if [ "$extraEscape" = "escape" ]; then
+      ssh "${acc}" adb -s "${device}" shell su -c ${debian}/enter.sh\\\\ rm\\\\ -f\\\\ /tmp/.X0-lock
+      uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh\\\\\\\\ /root/X.sh" &
+      sleep 5
+      uxterm -T displays -e "ssh -R ${port}:localhost:${port} -tt ${acc} socat TCP-CONNECT:127.0.0.1:${port} SYSTEM:\\'adb -s ${device} shell -e none su -c ${debian}/enter.sh\\\\\\\\\\\\\\\\ /socat.sh\\'" &
+      sleep 1
+      uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh\\\\\\\\ /root/vnc.sh" &
+    else
+      ssh "${acc}" adb -s "${device}" shell su -c ${debian}/enter.sh rm -f /tmp/.X0-lock
+      uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh /root/X.sh" &
+      sleep 8
+      uxterm -T displays -e "ssh -R ${port}:localhost:${port} -tt ${acc} socat TCP-CONNECT:127.0.0.1:${port} SYSTEM:\\'adb -s ${device} shell -e none su -c ${debian}/enter.sh /socat.sh\\'" &
+      sleep 2
+      uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh /root/vnc.sh" &
+    fi
+  fi
+}
+
+setupSamsungWhite() {
+  android "$(port SamsungWhite)" 30045b283451c100 /system/debian no
+}
+
+setupSamsungBlack1() {
+  android "$(port SamsungBlack1)" 3004575aaf74c100 /system/debian no
+}
+
+setupSamsungBlack2() {
+  android "$(port SamsungBlack2)" 3004924d2e1b7100 /system/debian no
+}
+
+setupLifetabBlack1() {
+  android "$(port LifetabBlack1)" DEA0017625 /data/debian-jessie no
+}
+
+setupLifetabBlack2() {
+  android "$(port LifetabBlack2)" DEA0025691 /data/debian-jessie no
+}
+
+setupLenovo() {
+  android "$(port Lenovo)" FA49RWJRZLT8FY7H /data/debian-jessie escape
+}
+
+setupNova() {
+  android "$(port Nova)" 0123456789ABCDEF /data/debian-jessie no
+}
+
+setupPhone() {
+  uxterm -T displays -e "ssh -R 192.168.2.2:$(port Phone):localhost:$(port Phone) root@192.168.3.2 sleep 86400" &
+
+  port Phone
+}
+
+setupLaptops() {
+  setupLaptop1 &
+  setupLaptop2 &
+  setupViewSonic &
+}
+
+setupTablets() {
+  setupSamsungWhite &
+  setupSamsungBlack1 &
+  setupSamsungBlack2 &
+  setupLifetabBlack1 &
+  setupLifetabBlack2 &
+  setupLenovo &
+  setupPhone &
+}
+
+if [ "$action" = "on" ]; then
+  xrandr --listmonitors | cut -d' ' -f 3 | grep -v '^$' | while read m; do
+    xrandr --delmonitor "$m"
+  done
+
+  killall x11vnc || true
+  sleep 0.5
+  killall -9 x11vnc || true
+  sleep 0.5
+
+  xrandr --fb $(size framebuffer) \
+    --output DVI-D-0 --pos $(pos Belinea) --panning $(size framebuffer)+0+0/$(size Belinea)+$(panpos Belinea) \
+    --output HDMI-0 --pos $(pos Samsung) --panning $(size Samsung)+$(panpos Samsung)/$(size Samsung)+$(panpos Samsung) \
+    --output VGA-0 --pos $(pos Medion) --panning $(size Medion)+$(panpos Medion)/$(size Medion)+$(panpos Medion)
+
+  conf | grep -v "^*" | parseName | while read n; do
+    xrandr --setmonitor "$n" "$(monsize "$n")+$(panpos "$n")" "$(output "$n")"
+  done
+
+  sleep 5
+
+  conf | grep -v "^*" | parseName | while read n; do
+    if [ "$(output "$n")" = "none" ]; then
+      if [ "$(password "$n")" = "none" ]; then
+        uxterm -T displays -e "while sleep 0.1; do x11vnc -noxfixes -forever -rfbport $(port "$n") -viewonly -localhost -clip $(size "$n")+$(panpos "$n"); done" &
+      else
+        uxterm -T displays -e "while sleep 0.1; do x11vnc -noxfixes -forever -passwd "$pw" -rfbport $(port "$n") -localhost -clip $(size "$n")+$(panpos "$n"); done" &
+      fi
+    fi
+  done
+
+  startx root@192.168.3.8 || true
+
+  sleep 10
+
+  unlock drahflow@192.168.3.109 || true
+  unlock root@192.168.3.8 || true
+
+  setupLaptops
+elif [ "$action" = "off" ]; then
+  xrandr --listmonitors | cut -d' ' -f 3 | grep -v '^$' | while read m; do
+    xrandr --delmonitor "$m"
+  done
+
+  xrandr --fb 3920x1024 \
+    --output DVI-D-0 --pos 0x0 --panning 1280x1024+0+0 \
+    --output HDMI-0 --pos 1280x0 --panning 1360x768+1280+0 \
+    --output VGA-0 --pos $((1280 + 1360))x0 --panning 1280x1024+$((1280 + 1360))+0
+
+  sleep 5
+
+  if [ "${2:-}" = "hard" ]; then
+    conf | grep -v "^*" | parseName | while read n; do
+      setup$n || true
+    done
+  fi
+
+  ssh drahflow@192.168.3.109 'killall vncviewer'
+  ssh drahflow@192.168.3.109 'DISPLAY=:0 xset dpms force off'
+  ssh root@192.168.3.8 poweroff
+else
+  setup$action || true
+fi
