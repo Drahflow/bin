@@ -7,7 +7,7 @@ device=2n21i811800000cvj0o0
   if [ "${1:-on}" = "on" ]; then
     echo 'killall xtightvncviewer; killall -9 write-paper; DISPLAY=:0 /root/write-paper/write-paper; exit' | ssh "$acc" adb -s $device shell su -c /data/debian-jessie/enter.sh
   elif [ "$1" = "edit" ]; then
-    convert "$2" -resize 2560x1600 ~/tmp/paper.png
+    convert "$2" -resize 2560x1600 png24:${HOME}/tmp/paper.png
     scp ~/tmp/paper.png root@192.168.3.8:/tmp/paper.png
     ssh "$acc" adb -s $device push /tmp/paper.png /data/debian-jessie/tmp/paper.png
     sleep 1
