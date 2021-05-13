@@ -9,6 +9,7 @@ pw="$(cat $HOME/.displays.pw)"
 conf() {
   cat <<CONF
 Lifetab4:1280x800:COL0:none:pw
+Nova:800x600:COL0:none:pw
 Laptop2:1366x768:COL1:none:none
 Laptop1:1366x768:COL1:none:none
 SamsungWhite:1024x600:COL1:none:pw
@@ -17,10 +18,9 @@ SamsungBlack1:1024x600:COL1:none:pw
 ViewSonic:1280x1024:COL2:none:none
 Belinea:1280x1024:COL2:DVI-D-0:pw
 Lifetab2:1280x800:COL2:none:pw
-Lifetab1:1280x800:COL2:none:pw
+Write:2560x1600:COL2:none:pw:multicol
 Samsung:1360x768:COL3:HDMI-0:pw
 Lenovo:1280x800:COL3:none:pw
-Nova:800x600:COL3:none:pw
 Medion:1280x1024:COL4:VGA-0:pw
 Lifetab3:1280x800:COL4:none:pw
 Phone:800x480:COL4:none:pw
@@ -60,13 +60,17 @@ parsePassword() {
   cut -d: -f5
 }
 
+parseMulticol() {
+  cut -d: -f6
+}
+
 parseOutput() {
   cut -d: -f4
 }
 
 columnWidth() {
   max=0
-  conf | grep "$1" | grep -v "^*" | parseWidth | while read w; do
+  conf | grep "$1" | grep -v "^*" | grep -v "multicol" | parseWidth | while read w; do
     if [ "$max" -lt "$w" ]; then
       max="$w"
     fi
@@ -219,39 +223,48 @@ android() {
   device="$2"
   debian="$3"
   extraEscape="${4:-no}"
+  rootingTime="${5:-10}"
   acc=root@192.168.3.8
 
   # ssh $acc adb -s $device shell ps | grep Xorg || (
   #   ssh root@192.168.3.109 adb -s 30045b283451c100 shell ps | grep zygote || (
 
-  if [ "$extraEscape" = "escape" ]; then
+  if [ "$extraEscape" = "escape" -a "$subcmd" != "fix" ]; then
     ssh "${acc}" adb -s "$device" shell /data/local/tmp/root.sh
-    sleep 10
+    sleep $rootingTime
   fi
 
-  ssh "${acc}" adb -s "${device}" shell su -c reboot
-  sleep 90;
+  if [ "$subcmd" != "fix" ]; then
+    ssh "${acc}" adb -s "${device}" shell su -c reboot
+    sleep 90;
+
+    if [ "$action" != "off" -a "$subcmd" != "off" ]; then
+      if [ "$extraEscape" = "escape" ]; then
+        ssh "${acc}" adb -s "${device}" shell /data/local/tmp/root.sh
+        sleep $rootingTime
+      fi
+
+      ssh "${acc}" adb -s "${device}" shell su -c ${debian}/start.sh
+      sleep 5
+
+      if [ "$extraEscape" = "escape" ]; then
+        ssh "${acc}" adb -s "${device}" shell su -c ${debian}/enter.sh\\\\ rm\\\\ -f\\\\ /tmp/.X0-lock
+        uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh\\\\\\\\ /root/X.sh" &
+        sleep 15
+      else
+        ssh "${acc}" adb -s "${device}" shell su -c ${debian}/enter.sh rm -f /tmp/.X0-lock
+        uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh /root/X.sh" &
+        sleep 15
+      fi
+    fi
+  fi
 
   if [ "$action" != "off" -a "$subcmd" != "off" ]; then
     if [ "$extraEscape" = "escape" ]; then
-      ssh "${acc}" adb -s "${device}" shell /data/local/tmp/root.sh
-      sleep 10
-    fi
-
-    ssh "${acc}" adb -s "${device}" shell su -c ${debian}/start.sh
-    sleep 5
-
-    if [ "$extraEscape" = "escape" ]; then
-      ssh "${acc}" adb -s "${device}" shell su -c ${debian}/enter.sh\\\\ rm\\\\ -f\\\\ /tmp/.X0-lock
-      uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh\\\\\\\\ /root/X.sh" &
-      sleep 15
       uxterm -T displays -e "ssh -R ${port}:localhost:${port} -tt ${acc} socat TCP-CONNECT:127.0.0.1:${port} SYSTEM:\\'adb -s ${device} shell -e none su -c ${debian}/enter.sh\\\\\\\\\\\\\\\\ /socat.sh\\'" &
       sleep 10
       uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh\\\\\\\\ /root/vnc.sh" &
     else
-      ssh "${acc}" adb -s "${device}" shell su -c ${debian}/enter.sh rm -f /tmp/.X0-lock
-      uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh /root/X.sh" &
-      sleep 15
       uxterm -T displays -e "ssh -R ${port}:localhost:${port} -tt ${acc} socat TCP-CONNECT:127.0.0.1:${port} SYSTEM:\\'adb -s ${device} shell -e none su -c ${debian}/enter.sh /socat.sh\\'" &
       sleep 10
       uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh /root/vnc.sh" &
@@ -301,6 +314,10 @@ setupPhone() {
   port Phone
 }
 
+setupWrite() {
+  android "$(port Write)" 2n21i811800000cvj0o0 /data/debian-jessie escape 1
+}
+
 setupLaptops() {
   setupLaptop1 &
   setupLaptop2 &
@@ -309,13 +326,21 @@ setupLaptops() {
 
 setupTablets() {
   setupSamsungWhite &
+  sleep 2
   setupSamsungBlack1 &
+  sleep 2
   setupSamsungBlack2 &
-  setupLifetab1 &
+  sleep 2
+  setupWrite &
+  sleep 2
   setupLifetab2 &
+  sleep 2
   setupLifetab3 &
+  sleep 2
   setupLifetab4 &
+  sleep 2
   setupLenovo &
+  sleep 2
   setupPhone &
 }
 
@@ -374,6 +399,7 @@ elif [ "$action" = "off" ]; then
     done
   fi
 
+  tablet-brightness off
   lock drahflow@192.168.3.109  || true
   lock root@192.168.3.8  || true
 else
