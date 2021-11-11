@@ -6,12 +6,18 @@ device=2n21i811800000cvj0o0
 (
   if [ "${1:-on}" = "on" ]; then
     echo 'killall xtightvncviewer; killall -9 write-paper; DISPLAY=:0 /root/write-paper/write-paper; exit' | ssh "$acc" adb -s $device shell su -c /data/debian-jessie/enter.sh
+    echo 'echo '96' > /sys/class/backlight/pwm-backlight/brightness; exit' | ssh "$acc" adb -s $device shell su
   elif [ "$1" = "edit" ]; then
-    convert "$2" -resize 2560x1600 png24:${HOME}/tmp/paper.png
-    scp ~/tmp/paper.png root@192.168.3.8:/tmp/paper.png
-    ssh "$acc" adb -s $device push /tmp/paper.png /data/debian-jessie/tmp/paper.png
+    if [ -r "$2" ]; then
+      convert "$2" -resize 2560x1600 png24:${HOME}/tmp/paper.png
+      scp ~/tmp/paper.png root@192.168.3.8:/tmp/paper.png
+      ssh "$acc" adb -s $device push /tmp/paper.png /data/debian-jessie/tmp/paper.png
+    else
+      ssh "$acc" adb -s $device shell su -c "\"'rm /data/debian-jessie/tmp/paper.png'\""
+    fi
     sleep 1
     echo 'killall xtightvncviewer; killall -9 write-paper; DISPLAY=:0 /root/write-paper/write-paper /tmp/paper.png; exit' | ssh "$acc" adb -s $device shell su -c /data/debian-jessie/enter.sh
+    echo 'echo '96' > /sys/class/backlight/pwm-backlight/brightness; exit' | ssh "$acc" adb -s $device shell su
   else
     echo 'killall -9 write-paper; exit' | ssh "$acc" adb -s $device shell su -c /data/debian-jessie/enter.sh
     displays Write fix
@@ -23,6 +29,7 @@ sleep 2
 echo "Press enter to copy back."
 read
 
+ssh "$acc" adb -s $device shell su -c "\"'chmod 666 /data/debian-jessie/tmp/paper.png'\""
 ssh "$acc" adb -s $device pull /data/debian-jessie/tmp/paper.png /tmp/paper.png 
 sleep 1
 scp root@192.168.3.8:/tmp/paper.png ~/tmp/paper.png
