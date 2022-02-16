@@ -1,0 +1,34 @@
+#!/bin/zsh
+
+acc=root@192.168.3.8
+device=2n21i811800000cvj0o0
+
+if [ "${1:-on}" = "on" ]; then
+  (echo 'killall Xorg; cd /root/write-paper/; exec ./write-paper2'; cat) | ssh "$acc" adb -s $device shell su -c /data/debian-jessie/enter.sh
+elif [ "$1" = "edit" ]; then
+  if [ -r "$2" ]; then
+    convert "$2" -resize 2560x1600 png24:${HOME}/tmp/paper.png
+    scp ~/tmp/paper.png root@192.168.3.8:/tmp/paper.png
+    ssh "$acc" adb -s $device push /tmp/paper.png /data/debian-jessie/tmp/paper.png
+  else
+    ssh "$acc" adb -s $device shell su -c "\"'rm /data/debian-jessie/tmp/paper.png'\""
+  fi
+  sleep 1
+  (echo 'killall Xorg; cd /root/write-paper; exec ./write-paper2 /tmp/paper.png'; cat) | ssh "$acc" adb -s $device shell su -c /data/debian-jessie/enter.sh
+else
+  echo 'killall -9 write-paper2; nohup /root/X.sh > /dev/null & exit' | ssh "$acc" adb -s $device shell su -c /data/debian-jessie/enter.sh
+  displays Write fix
+  exit
+fi
+
+ssh "$acc" adb -s $device shell su -c "\"'chmod 666 /data/debian-jessie/tmp/paper.png'\""
+ssh "$acc" adb -s $device pull /data/debian-jessie/tmp/paper.png /tmp/paper.png 
+sleep 1
+if [ "$1" = "edit" ]; then
+  scp root@192.168.3.8:/tmp/paper.png ~/tmp/paper.png
+  convert "$2" -resize 2560x1600 ~/tmp/paper.png -flatten ~/tmp/paper.new.png
+  cp ~/tmp/paper.new.png "$2"
+
+  echo "Result:"
+  echo "$2"
+fi
