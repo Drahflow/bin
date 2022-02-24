@@ -7,29 +7,38 @@ subcmd="${2:-}"
 pw="$(cat $HOME/.displays.pw)"
 
 conf() {
+  if [ "$(hostname)" = "serpentis" ]; then
+  cat <<CONF
+Panel:1366x768:COL0:eDP1:none
+Halflife:1280x800:COL1:none:pw
+*:COL0:shift:0:pw
+*:COL1:shift:0:pw
+CONF
+  else
   cat <<CONF
 Lifetab4:1280x800:COL0:none:pw
 Nova:800x600:COL0:none:pw
 Laptop2:1366x768:COL1:none:none
 Laptop1:1366x768:COL1:none:none
-SamsungWhite:1024x600:COL1:none:pw
+Lifetab1:1280x800:COL1:none:pw
 SamsungBlack2:1024x600:COL1:none:pw
 SamsungBlack1:1024x600:COL1:none:pw
 ViewSonic:1280x1024:COL2:none:none
-Belinea:1280x1024:COL2:DVI-D-0:pw
+Belinea:1280x1024:COL2:HDMI1:pw
 Lifetab2:1280x800:COL2:none:pw
 Write:2560x1600:COL2:none:pw:multicol
-Samsung:1360x768:COL3:HDMI-0:pw
+Samsung:1360x768:COL3:HDMI2:pw
 Lenovo:1280x800:COL3:none:pw
-Medion:1280x1024:COL4:VGA-0:pw
+Medion:1280x1024:COL4:VGA1:pw
 Lifetab3:1280x800:COL4:none:pw
-Phone:800x480:COL4:none:pw
+Phone:1920x1080:COL4:none:pw
 *:COL0:shift:2036:pw
 *:COL1:shift:700:pw
 *:COL2:shift:0:pw
 *:COL3:shift:700:pw
 *:COL4:shift:900:pw
 CONF
+  fi
 }
 
 parseName() {
@@ -165,6 +174,10 @@ port() {
   echo "$((5899 + $(conf | grep -B99 "$1" | wc -l)))"
 }
 
+fwdPort() {
+  echo "$(($(port $1) + 1000))"
+}
+
 startx() {
   uxterm -T displays -e "ssh $1 Xorg -nocursor" &
 }
@@ -183,7 +196,7 @@ lock() {
   ssh "$1" 'DISPLAY=:0 screen -dmS i3lock i3lock'
 }
 
-setupBelina() { }
+# setupBelina() { }
 setupSamsung() { }
 setupMedion() { }
 
@@ -224,7 +237,8 @@ android() {
   debian="$3"
   extraEscape="${4:-no}"
   rootingTime="${5:-10}"
-  acc=root@192.168.3.8
+  acc="${6:-root@192.168.3.8}"
+  fwdPort="$(($port + 1000))"
 
   # ssh $acc adb -s $device shell ps | grep Xorg || (
   #   ssh root@192.168.3.109 adb -s 30045b283451c100 shell ps | grep zygote || (
@@ -235,8 +249,10 @@ android() {
   fi
 
   if [ "$subcmd" != "fix" ]; then
-    ssh "${acc}" adb -s "${device}" shell su -c reboot
-    sleep 90;
+    if [ "$subcmd" != "noboot" ]; then
+      ssh "${acc}" adb -s "${device}" shell su -c reboot
+      sleep 90;
+    fi
 
     if [ "$action" != "off" -a "$subcmd" != "off" ]; then
       if [ "$extraEscape" = "escape" ]; then
@@ -261,11 +277,11 @@ android() {
 
   if [ "$action" != "off" -a "$subcmd" != "off" ]; then
     if [ "$extraEscape" = "escape" ]; then
-      uxterm -T displays -e "ssh -R ${port}:localhost:${port} -tt ${acc} socat TCP-CONNECT:127.0.0.1:${port} SYSTEM:\\'adb -s ${device} shell -e none su -c ${debian}/enter.sh\\\\\\\\\\\\\\\\ /socat.sh\\'" &
+      uxterm -T displays -e "ssh -R ${fwdPort}:localhost:${port} -tt ${acc} socat TCP-CONNECT:127.0.0.1:${fwdPort} SYSTEM:\\'adb -s ${device} shell -e none su -c ${debian}/enter.sh\\\\\\\\\\\\\\\\ /socat.sh\\'" &
       sleep 10
       uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh\\\\\\\\ /root/vnc.sh" &
     else
-      uxterm -T displays -e "ssh -R ${port}:localhost:${port} -tt ${acc} socat TCP-CONNECT:127.0.0.1:${port} SYSTEM:\\'adb -s ${device} shell -e none su -c ${debian}/enter.sh /socat.sh\\'" &
+      uxterm -T displays -e "ssh -R ${fwdPort}:localhost:${port} -tt ${acc} socat TCP-CONNECT:127.0.0.1:${fwdPort} SYSTEM:\\'adb -s ${device} shell -e none su -c ${debian}/enter.sh /socat.sh\\'" &
       sleep 10
       uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh /root/vnc.sh" &
     fi
@@ -309,13 +325,21 @@ setupNova() {
 }
 
 setupPhone() {
-  uxterm -T displays -e "ssh -R 192.168.2.2:$(port Phone):localhost:$(port Phone) root@192.168.3.2 sleep 86400" &
+  uxterm -T displays -e "ssh -R 192.168.2.2:$(fwdPort Phone):localhost:$(port Phone) root@192.168.3.2 sleep 86400" &
 
   port Phone
 }
 
 setupWrite() {
   android "$(port Write)" 2n21i811800000cvj0o0 /data/debian-jessie escape 1
+}
+
+setupHalflife() {
+  android "$(port Halflife)" DEMX114508 /data/debian-jessie no 1 "root@localhost"
+}
+
+setupNeron() {
+  android "$(port Neron)" WAWJMZTJQX /data/debian-jessie no 1 "root@localhost"
 }
 
 setupLaptops() {
@@ -325,27 +349,31 @@ setupLaptops() {
 }
 
 setupTablets() {
-  setupSamsungWhite &
-  sleep 2
-  setupSamsungBlack1 &
-  sleep 2
-  setupSamsungBlack2 &
-  sleep 2
-  setupWrite &
-  sleep 2
-  setupLifetab2 &
-  sleep 2
-  setupLifetab3 &
-  sleep 2
-  setupLifetab4 &
-  sleep 2
-  setupLenovo &
-  sleep 2
-  setupPhone &
+  if [ "$(hostname)" = "serpentis" ]; then
+    setupHalflife &
+  else
+    setupLifetab1 &
+    sleep 2
+    setupSamsungBlack1 &
+    sleep 2
+    setupSamsungBlack2 &
+    sleep 2
+    setupWrite &
+    sleep 2
+    setupLifetab2 &
+    sleep 2
+    setupLifetab3 &
+    sleep 2
+    setupLifetab4 &
+    sleep 2
+    setupLenovo &
+    sleep 2
+    setupPhone &
+  fi
 }
 
 if [ "$action" = "on" ]; then
-  xrandr --listmonitors | cut -d' ' -f 3 | grep -v '^$' | while read m; do
+  xrandr --listmonitors | cut -d' ' -f 3 | grep -v '^$' | grep -v 'eDP1' | while read m; do
     xrandr --delmonitor "$m"
   done
 
@@ -354,10 +382,15 @@ if [ "$action" = "on" ]; then
   killall -9 x11vnc || true
   sleep 0.5
 
-  xrandr --fb $(size framebuffer) \
-    --output DVI-D-0 --pos $(pos Belinea) --panning $(size framebuffer)+0+0/$(size Belinea)+$(panpos Belinea) \
-    --output HDMI-0 --pos $(pos Samsung) --panning $(size Samsung)+$(panpos Samsung)/$(size Samsung)+$(panpos Samsung) \
-    --output VGA-0 --pos $(pos Medion) --panning $(size Medion)+$(panpos Medion)/$(size Medion)+$(panpos Medion)
+  if [ "$(hostname)" = "serpentis" ]; then
+    xrandr --fb $(size framebuffer) \
+      --output eDP1 --pos $(pos Panel) --panning $(size framebuffer)+0+0/$(size Panel)+$(panpos Panel)
+  else
+    xrandr --fb $(size framebuffer) \
+      --output HDMI1 --pos $(pos Belinea) --panning $(size framebuffer)+0+0/$(size Belinea)+$(panpos Belinea) \
+      --output HDMI2 --pos $(pos Samsung) --panning $(size Samsung)+$(panpos Samsung)/$(size Samsung)+$(panpos Samsung) \
+      --output VGA1 --pos $(pos Medion) --panning $(size Medion)+$(panpos Medion)/$(size Medion)+$(panpos Medion)
+  fi
 
   conf | grep -v "^*" | parseName | while read n; do
     xrandr --setmonitor "$n" "$(monsize "$n")+$(panpos "$n")" "$(output "$n")"
@@ -377,19 +410,23 @@ if [ "$action" = "on" ]; then
 
   sleep 10
 
-  unlock drahflow@192.168.3.109 || true
-  unlock root@192.168.3.8 || true
+  if [ "$(hostname)" = "serpentis" ]; then
+    # all manual
+  else
+    unlock drahflow@192.168.3.109 || true
+    unlock root@192.168.3.8 || true
 
-  setupLaptops
+    setupLaptops
+  fi
 elif [ "$action" = "off" ]; then
   xrandr --listmonitors | cut -d' ' -f 3 | grep -v '^$' | while read m; do
     xrandr --delmonitor "$m"
   done
 
   xrandr --fb 3920x1024 \
-    --output DVI-D-0 --pos 0x0 --panning 1280x1024+0+0 \
-    --output HDMI-0 --pos 1280x0 --panning 1360x768+1280+0 \
-    --output VGA-0 --pos $((1280 + 1360))x0 --panning 1280x1024+$((1280 + 1360))+0
+    --output HDMI1 --pos 0x0 --panning 1280x1024+0+0 \
+    --output HDMI2 --pos 1280x0 --panning 1360x768+1280+0 \
+    --output VGA1 --pos $((1280 + 1360))x0 --panning 1280x1024+$((1280 + 1360))+0
 
   sleep 5
 
