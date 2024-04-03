@@ -17,4 +17,4 @@ fi
 
 latex "$tex" &&
 dvips "$root".dvi &&
-ps2pdf "$root".ps
+ps2pdf -dALLOWPSTRANSPARENCY "$root".ps

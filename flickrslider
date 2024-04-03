@@ -9,6 +9,6 @@ while sleep 1; do
   while read url; do
     wget -O "$TMPFILE" "$url" && \
     display -backdrop -window root "$TMPFILE"
-    sleep 60
+    sleep 10
   done
 done

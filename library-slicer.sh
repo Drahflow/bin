@@ -7,7 +7,7 @@ TARGET_PATH="$2"
 BUILD_COMMAND="${3:-make}"
 
 if [ "$SOURCE_PATTERN" = "" -o "$TARGET_PATH" = "" ]; then
-  echo "Usage: $0 <SOURCE_PATTERN> <TARGET_PATH>" >&2
+  echo "Usage: $0 <SOURCE_PATTERN> <TARGET_PATH> [build command]" >&2
   exit 1
 fi
 

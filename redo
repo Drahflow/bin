@@ -10,5 +10,5 @@ else
   rm -fv "$FIFO"
   mkfifo "$FIFO"
 
-  while read l < "$FIFO"; do "$@"; done
+  while read l < "$FIFO"; do echo '============================='; sh -c "$*"; done
 fi

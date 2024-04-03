@@ -5,6 +5,7 @@ STRENGTH=normal
 [ "$STRENGTH" == "weak" ] && { export DEVICE=/dev/urandom; CHARSET='a-zA-Z0-9'; LENGTH=8; }
 [ "$STRENGTH" == "normal" ] && { export DEVICE=/dev/urandom; CHARSET='a-zA-Z0-9!"$%&/()=?`\\+*~#-_.:,;<>|^@'"'"; LENGTH=12; }
 [ "$STRENGTH" == "strong" ] && { export DEVICE=/dev/urandom; CHARSET='a-zA-Z0-9!"$%&/()=?`\\+*~#-_.:,;<>|^@'"'"; LENGTH=32; }
+[ "$STRENGTH" == "long" ] && { export DEVICE=/dev/urandom; CHARSET='a-zA-Z0-9'; LENGTH=48; }
 [ "$STRENGTH" == "custom" ] && { export DEVICE=${4:-/dev/urandom}; CHARSET=${3:-'a-zA-Z0-9!"$%&/()=?`\\+*~#-_.:,;<>|^@'"'"}; LENGTH=${2:-16}; }
 [ "$STRENGTH" == "--help" ] && {
 	echo "Usage: genpw [<strength>]"

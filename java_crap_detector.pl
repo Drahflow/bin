@@ -107,7 +107,7 @@ sub detect_crap {
 			++$matchLen;
 			++$i;
 			++$start;
-		    } while($cont);
+		    } while($cont and $i < @lines);
 		    --$matchLen;
 		} else {
 		    $i = $i + $length;
