@@ -4,7 +4,7 @@ acc=root@192.168.3.8
 device=2n21i811800000cvj0o0
 
 if [ "${1:-on}" = "on" ]; then
-  (echo 'killall Xorg; cd /root/write-paper/; exec ./write-paper2'; cat) | ssh "$acc" adb -s $device shell su -c /data/debian-jessie/enter.sh
+  (echo 'killall Xorg; killall -9 write-paper2; cd /root/write-paper/; exec ./write-paper2'; cat) | ssh "$acc" adb -s $device shell su -c /data/debian-jessie/enter.sh
 elif [ "$1" = "edit" ]; then
   if [ -r "$2" ]; then
     convert "$2" -resize 2560x1600 png24:${HOME}/tmp/paper.png
@@ -14,7 +14,7 @@ elif [ "$1" = "edit" ]; then
     ssh "$acc" adb -s $device shell su -c "\"'rm /data/debian-jessie/tmp/paper.png'\""
   fi
   sleep 1
-  (echo 'killall Xorg; cd /root/write-paper; exec ./write-paper2 /tmp/paper.png'; cat) | ssh "$acc" adb -s $device shell su -c /data/debian-jessie/enter.sh
+  (echo 'killall Xorg; killall -9 write-paper2; cd /root/write-paper; exec ./write-paper2 /tmp/paper.png'; cat) | ssh "$acc" adb -s $device shell su -c /data/debian-jessie/enter.sh
 else
   echo 'killall -9 write-paper2; nohup /root/X.sh > /dev/null & exit' | ssh "$acc" adb -s $device shell su -c /data/debian-jessie/enter.sh
   displays Write fix
