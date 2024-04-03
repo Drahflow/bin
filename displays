@@ -21,22 +21,25 @@ Nova:800x600:COL0:none:pw
 Laptop2:1366x768:COL1:none:none
 Laptop1:1366x768:COL1:none:none
 Lifetab1:1280x800:COL1:none:pw
-SamsungBlack2:1024x600:COL1:none:pw
 SamsungBlack1:1024x600:COL1:none:pw
+SamsungBlack2:1024x600:COL1:none:pw
 ViewSonic:1280x1024:COL2:none:none
-Belinea:1280x1024:COL2:HDMI1:pw
+ViewSonic2:1280x1024:COL2:HDMI1:pw
 Lifetab2:1280x800:COL2:none:pw
 Write:2560x1600:COL2:none:pw:multicol
+Acer:1920x1080:COL3:DVI-D-1-1:pw
 Samsung:1360x768:COL3:HDMI2:pw
 Lenovo:1280x800:COL3:none:pw
 Medion:1280x1024:COL4:VGA1:pw
-Lifetab3:1280x800:COL4:none:pw
-Phone:1920x1080:COL4:none:pw
+HP:1440x900:COL5:VGA-1-2:pw
+Lifetab3:1280x800:COL5:none:pw
+Phone:1920x1080:COL5:none:pw
 *:COL0:shift:2036:pw
 *:COL1:shift:700:pw
 *:COL2:shift:0:pw
-*:COL3:shift:700:pw
+*:COL3:shift:0:pw
 *:COL4:shift:900:pw
+*:COL5:shift:900:pw
 CONF
   fi
 }
@@ -179,21 +182,21 @@ fwdPort() {
 }
 
 startx() {
-  uxterm -T displays -e "ssh $1 Xorg -nocursor" &
+  uxterm -T displays -e "ssh -S none $1 Xorg -nocursor" &
 }
 
 unlock() {
-  ssh "$1" 'DISPLAY=:0 xset dpms 0 0 0'
-  ssh "$1" 'DISPLAY=:0 xset s 0 0'
-  ssh "$1" 'DISPLAY=:0 xset dpms force on'
-  ssh "$1" 'DISPLAY=:0 xset b off'
-  ssh "$1" 'DISPLAY=:0 killall i3lock || true'
+  ssh -S none "$1" 'DISPLAY=:0 xset dpms 0 0 0'
+  ssh -S none "$1" 'DISPLAY=:0 xset s 0 0'
+  ssh -S none "$1" 'DISPLAY=:0 xset dpms force on'
+  ssh -S none "$1" 'DISPLAY=:0 xset b off'
+  ssh -S none "$1" 'DISPLAY=:0 killall i3lock || true'
 }
 
 lock() {
-  ssh "$1" 'killall vncviewer'
-  ssh "$1" 'DISPLAY=:0 xset dpms force off'
-  ssh "$1" 'DISPLAY=:0 screen -dmS i3lock i3lock'
+  ssh -S none "$1" 'killall vncviewer'
+  ssh -S none "$1" 'DISPLAY=:0 xset dpms force off'
+  ssh -S none "$1" 'DISPLAY=:0 screen -dmS i3lock i3lock'
 }
 
 # setupBelina() { }
@@ -201,34 +204,36 @@ setupSamsung() { }
 setupMedion() { }
 
 setupLaptop1() {
-  uxterm -T displays -e "ssh -R $(port Laptop1):localhost:$(port Laptop1) drahflow@192.168.3.109 'export DISPLAY=:0; ~/i3.install/bin/i3-msg workspace 1; ~/i3.install/bin/i3-msg move workspace to output eDP1; vncviewer FullScreen=0 ViewOnly=1 UseLocalCursor=0 geometry=1366x768+0+0 localhost:$(port Laptop1)'" &
+  unlock drahflow@192.168.3.109 || true
+
+  uxterm -T displays -e "ssh -S none -R $(port Laptop1):localhost:$(port Laptop1) drahflow@192.168.3.109 'export DISPLAY=:0; ~/i3.install/bin/i3-msg workspace 1; ~/i3.install/bin/i3-msg move workspace to output eDP1; vncviewer FullScreen=0 ViewOnly=1 UseLocalCursor=0 geometry=1366x768+0+0 localhost:$(port Laptop1)'" &
 
   sleep 2
 
-  ssh drahflow@192.168.3.109 'DISPLAY=:0 ~/i3.install/bin/i3-msg floating enable'
-  ssh drahflow@192.168.3.109 'DISPLAY=:0 ~/i3.install/bin/i3-msg resize shrink up 10px'
-  ssh drahflow@192.168.3.109 'DISPLAY=:0 ~/i3.install/bin/i3-msg resize set 1368 770'
-  ssh drahflow@192.168.3.109 'DISPLAY=:0 xdotool mousemove 0 767'
+  ssh -S none drahflow@192.168.3.109 'DISPLAY=:0 ~/i3.install/bin/i3-msg floating enable'
+  ssh -S none drahflow@192.168.3.109 'DISPLAY=:0 ~/i3.install/bin/i3-msg resize shrink up 10px'
+  ssh -S none drahflow@192.168.3.109 'DISPLAY=:0 ~/i3.install/bin/i3-msg resize set 1368 770'
+  ssh -S none drahflow@192.168.3.109 'DISPLAY=:0 xdotool mousemove 0 767'
 }
 
 setupViewSonic() {
   sleep 10
 
-  uxterm -T displays -e "ssh -R $(port ViewSonic):localhost:$(port ViewSonic) root@192.168.3.8 'export DISPLAY=:0; i3-msg workspace 2; i3-msg move workspace to output HDMI-1; vncviewer FullScreen=0 ViewOnly=1 UseLocalCursor=0 geometry=1280x1024+0+0 localhost:$(port ViewSonic)'" &
+  uxterm -T displays -e "ssh -S none -R $(port ViewSonic):localhost:$(port ViewSonic) root@192.168.3.8 'export DISPLAY=:0; i3-msg workspace 2; i3-msg move workspace to output HDMI-1; vncviewer FullScreen=0 ViewOnly=1 UseLocalCursor=0 geometry=1280x1024+0+0 localhost:$(port ViewSonic)'" &
 
   sleep 2
 
-  ssh root@192.168.3.8 'DISPLAY=:0 i3-msg floating enable'
+  ssh -S none root@192.168.3.8 'DISPLAY=:0 i3-msg floating enable'
 }
 
 setupLaptop2() {
   unlock root@192.168.3.8 || true
 
-  uxterm -T displays -e "ssh -R $(port Laptop2):localhost:$(port Laptop2) root@192.168.3.8 'export DISPLAY=:0; i3-msg workspace 1; i3-msg move workspace to output eDP1; vncviewer FullScreen=0 ViewOnly=1 UseLocalCursor=0 geometry=1366x768+0+0 localhost:$(port Laptop2)'" &
+  uxterm -T displays -e "ssh -S none -R $(port Laptop2):localhost:$(port Laptop2) root@192.168.3.8 'export DISPLAY=:0; i3-msg workspace 1; i3-msg move workspace to output eDP1; vncviewer FullScreen=0 ViewOnly=1 UseLocalCursor=0 geometry=1366x768+0+0 localhost:$(port Laptop2)'" &
 
   sleep 2
 
-  ssh root@192.168.3.8 'DISPLAY=:0 i3-msg floating enable'
+  ssh -S none root@192.168.3.8 'DISPLAY=:0 i3-msg floating enable'
 }
 
 android() {
@@ -240,36 +245,36 @@ android() {
   acc="${6:-root@192.168.3.8}"
   fwdPort="$(($port + 1000))"
 
-  # ssh $acc adb -s $device shell ps | grep Xorg || (
-  #   ssh root@192.168.3.109 adb -s 30045b283451c100 shell ps | grep zygote || (
+  # ssh -S none $acc adb -s $device shell ps | grep Xorg || (
+  #   ssh -S none root@192.168.3.109 adb -s 30045b283451c100 shell ps | grep zygote || (
 
   if [ "$extraEscape" = "escape" -a "$subcmd" != "fix" ]; then
-    ssh "${acc}" adb -s "$device" shell /data/local/tmp/root.sh
+    ssh -S none "${acc}" adb -s "$device" shell /data/local/tmp/root.sh
     sleep $rootingTime
   fi
 
   if [ "$subcmd" != "fix" ]; then
     if [ "$subcmd" != "noboot" ]; then
-      ssh "${acc}" adb -s "${device}" shell su -c reboot
+      ssh -S none "${acc}" adb -s "${device}" shell su -c reboot
       sleep 90;
     fi
 
     if [ "$action" != "off" -a "$subcmd" != "off" ]; then
       if [ "$extraEscape" = "escape" ]; then
-        ssh "${acc}" adb -s "${device}" shell /data/local/tmp/root.sh
+        ssh -S none "${acc}" adb -s "${device}" shell /data/local/tmp/root.sh
         sleep $rootingTime
       fi
 
-      ssh "${acc}" adb -s "${device}" shell su -c ${debian}/start.sh
+      ssh -S none "${acc}" adb -s "${device}" shell su -c ${debian}/start.sh
       sleep 5
 
       if [ "$extraEscape" = "escape" ]; then
-        ssh "${acc}" adb -s "${device}" shell su -c ${debian}/enter.sh\\\\ rm\\\\ -f\\\\ /tmp/.X0-lock
-        uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh\\\\\\\\ /root/X.sh" &
+        ssh -S none "${acc}" adb -s "${device}" shell su -c ${debian}/enter.sh\\\\ rm\\\\ -f\\\\ /tmp/.X0-lock
+        uxterm -T displays -e "ssh -S none -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh\\\\\\\\ /root/X.sh" &
         sleep 15
       else
-        ssh "${acc}" adb -s "${device}" shell su -c ${debian}/enter.sh rm -f /tmp/.X0-lock
-        uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh /root/X.sh" &
+        ssh -S none "${acc}" adb -s "${device}" shell su -c ${debian}/enter.sh rm -f /tmp/.X0-lock
+        uxterm -T displays -e "ssh -S none -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh /root/X.sh" &
         sleep 15
       fi
     fi
@@ -277,13 +282,13 @@ android() {
 
   if [ "$action" != "off" -a "$subcmd" != "off" ]; then
     if [ "$extraEscape" = "escape" ]; then
-      uxterm -T displays -e "ssh -R ${fwdPort}:localhost:${port} -tt ${acc} socat TCP-CONNECT:127.0.0.1:${fwdPort} SYSTEM:\\'adb -s ${device} shell -e none su -c ${debian}/enter.sh\\\\\\\\\\\\\\\\ /socat.sh\\'" &
+      uxterm -T displays -e "ssh -S none -R ${fwdPort}:localhost:${port} -tt ${acc} socat TCP-CONNECT:127.0.0.1:${fwdPort} SYSTEM:\\'adb -s ${device} shell -e none su -c ${debian}/enter.sh\\\\\\\\\\\\\\\\ /socat.sh\\'" &
       sleep 10
-      uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh\\\\\\\\ /root/vnc.sh" &
+      uxterm -T displays -e "ssh -S none -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh\\\\\\\\ /root/vnc.sh" &
     else
-      uxterm -T displays -e "ssh -R ${fwdPort}:localhost:${port} -tt ${acc} socat TCP-CONNECT:127.0.0.1:${fwdPort} SYSTEM:\\'adb -s ${device} shell -e none su -c ${debian}/enter.sh /socat.sh\\'" &
+      uxterm -T displays -e "ssh -S none -R ${fwdPort}:localhost:${port} -tt ${acc} socat TCP-CONNECT:127.0.0.1:${fwdPort} SYSTEM:\\'adb -s ${device} shell -e none su -c ${debian}/enter.sh /socat.sh\\'" &
       sleep 10
-      uxterm -T displays -e "ssh -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh /root/vnc.sh" &
+      uxterm -T displays -e "ssh -S none -tt ${acc} adb -s ${device} shell su -c ${debian}/enter.sh /root/vnc.sh" &
     fi
   fi
 }
@@ -325,7 +330,7 @@ setupNova() {
 }
 
 setupPhone() {
-  uxterm -T displays -e "ssh -R 192.168.2.2:$(fwdPort Phone):localhost:$(port Phone) root@192.168.3.2 sleep 86400" &
+  uxterm -T displays -e "ssh -S none -R 192.168.2.2:$(fwdPort Phone):localhost:$(port Phone) root@192.168.3.2 sleep 86400" &
 
   port Phone
 }
@@ -387,9 +392,11 @@ if [ "$action" = "on" ]; then
       --output eDP1 --pos $(pos Panel) --panning $(size framebuffer)+0+0/$(size Panel)+$(panpos Panel)
   else
     xrandr --fb $(size framebuffer) \
-      --output HDMI1 --pos $(pos Belinea) --panning $(size framebuffer)+0+0/$(size Belinea)+$(panpos Belinea) \
+      --output HDMI1 --pos $(pos ViewSonic2) --panning $(size framebuffer)+0+0/$(size ViewSonic2)+$(panpos ViewSonic2) \
       --output HDMI2 --pos $(pos Samsung) --panning $(size Samsung)+$(panpos Samsung)/$(size Samsung)+$(panpos Samsung) \
       --output VGA1 --pos $(pos Medion) --panning $(size Medion)+$(panpos Medion)/$(size Medion)+$(panpos Medion)
+    xrandr --output DVI-D-1-1 --mode $(size Acer) --pos $(pos Acer)
+    xrandr --output VGA-1-2 --mode $(size HP) --pos $(pos HP)
   fi
 
   conf | grep -v "^*" | parseName | while read n; do
@@ -423,13 +430,6 @@ elif [ "$action" = "off" ]; then
     xrandr --delmonitor "$m"
   done
 
-  xrandr --fb 3920x1024 \
-    --output HDMI1 --pos 0x0 --panning 1280x1024+0+0 \
-    --output HDMI2 --pos 1280x0 --panning 1360x768+1280+0 \
-    --output VGA1 --pos $((1280 + 1360))x0 --panning 1280x1024+$((1280 + 1360))+0
-
-  sleep 5
-
   if [ "${2:-}" = "hard" ]; then
     conf | grep -v "^*" | parseName | while read n; do
       setup$n || true
@@ -439,6 +439,16 @@ elif [ "$action" = "off" ]; then
   tablet-brightness off
   lock drahflow@192.168.3.109  || true
   lock root@192.168.3.8  || true
+
+  xrandr --output DVI-D-1-1 --off
+  xrandr --output VGA-1-2 --off
+  xrandr --fb 3920x1024 \
+    --output HDMI1 --pos 0x0 --panning 1280x1024+0+0 \
+    --output HDMI2 --pos 1280x0 --panning 1360x768+1280+0 \
+    --output VGA1 --pos $((1280 + 1360))x0 --panning 1280x1024+$((1280 + 1360))+0
+elif [ $action = "port" ]; then
+  display="$subcmd"
+  echo "Local: $(port $display); Forwarding: $(fwdPort $display)"
 else
   setup$action || true
 fi
